@@ -1,50 +1,70 @@
-import { useCallback, useEffect, useState } from "react";
-import { StatusBar } from "expo-status-bar";
-import { StyleSheet, ScrollView, Dimensions, Text, View } from "react-native";
-import useWeatherToday from "./useWeatherToday";
-import useLocation from "./useLocation";
+import * as Location from "expo-location";
+import React, { useEffect, useState } from "react";
+import { Ionicons, Fontisto } from "@expo/vector-icons";
 
-// import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
-// useWeatherToday(Hook)은 함수 컴포넌트에서 React state 와 생명주기 기능을 연동할 수 있게 해주는 함수이다.
+import {
+  View,
+  Text,
+  Dimensions,
+  ActivityIndicator,
+  StyleSheet,
+  ScrollView,
+} from "react-native";
 
-//Dimesions 은 화면의 크기를 알려준다.
-const SCREEN_WIDTH = Dimensions.get("window").width;
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const API_KEY = "765ab5c0a723e005495e33153aaefecd";
 
-////////////////////////////////////////////////
+const icons = {
+  Clear: "day-sunny",
+  Clouds: "cloudy",
+  Rain: "rain",
+  Atmosphere: "cloudy-gusts",
+  Snow: "snow",
+  Drizzle: "day-rain",
+  Thunderstorm: "lightning",
+};
+
 export default function App() {
-  const [today, setToday] = useState([]);
-  const { lati_long, city, refetch: refetchLocation } = useLocation();
+  const [city, setCity] = useState("Loading...");
+  const [days, setDays] = useState([]);
+  const [ok, setOk] = useState(true);
+  const getWeather = async () => {
+    const { granted } = await Location.requestForegroundPermissionsAsync();
 
-  const { weatherToday, refetch: refetchWeather } = useWeatherToday(
-    lati_long?.latitude,
-    lati_long?.longitude,
-    API_KEY
-  );
-
+    if (!granted) {
+      setOk(false);
+    }
+    const {
+      coords: { latitude, longitude },
+    } = await Location.getCurrentPositionAsync({ accuracy: 5 });
+    const location = await Location.reverseGeocodeAsync(
+      { latitude, longitude },
+      { useGoogleMaps: false }
+    );
+    setCity(location[0].city);
+    const response = await fetch(
+      `https://api.openweathermap.org/data/2.5/forecast?lat=${latitude}&lon=${longitude}&exclude=alerts&appid=${API_KEY}&units=metric`
+    );
+    const json = await response.json();
+    const jsonList = [
+      json.list[0],
+      json.list[8],
+      json.list[16],
+      json.list[24],
+      json.list[32],
+    ];
+    console.log(jsonList);
+    setDays(jsonList);
+  };
   useEffect(() => {
-    if (lati_long && weatherToday) {
-      setToday(weatherToday);
-    }
-  }, [lati_long, weatherToday]);
+    getWeather();
+  }, []);
+  function formatDate(dateString) {
+    const date = new Date(dateString);
+    const month = String(date.getMonth() + 1).padStart(2, "0"); // 월은 0부터 시작하므로 1을 더합니다.
+    const day = String(date.getDate()).padStart(2, "0");
 
-  console.log("today: ", today);
-  console.log("lati_long: ", lati_long);
-  // API 호출 순서 getLocaion -> getWeather -> render
-  // 호출 할 때 까지좀 기다리고 싶음.
-  //
-  function showValue(value) {
-    if (value === "Loading...") {
-      return "Loading...";
-    }
-    return (value / 10).toFixed(1);
-  }
-  function convertTime(value) {
-    const dataObject = new Date(value * 1000);
-    return dataObject.toDateString();
-  }
-  function isExist(value) {
-    value ? value : "Loading...";
+    return `${month}월 ${day}일`;
   }
 
   return (
@@ -55,45 +75,37 @@ export default function App() {
       <ScrollView
         pagingEnabled // 페이지 단위로 스크롤
         horizontal // 가로 스크롤
-        // showsHorizontalScrollIndicator={false} // 스크롤 바 안보이게
         contentContainerStyle={styles.weather} // 스크롤 뷰의 스타일
       >
-        <View style={styles.day}>
-          {/* 현재  */}
-          <Text style={styles.tempText}>{convertTime(today.dt)}</Text>
-
-          <Text style={styles.tempText}>
-            {isExist(showValue(today.main.temp))}°C
-          </Text>
-          <Text style={styles.max_min_Text}>
-            MAX : {isExist(showValue(today.main.temp_max))}°C / MIN :{" "}
-            {isExist(showValue(today.main.temp_min))}°C
-          </Text>
-          <Text style={styles.weatherText}>
-            {isExist(today.weather[0].main)}
-          </Text>
-          <Text style={styles.weatherText}>
-            💧{isExist(today.main.humidity)}%{" "}
-          </Text>
-        </View>
-        <View style={styles.day}>
-          <Text style={styles.tempText}>27°C </Text>
-          <Text style={styles.weatherText}>Sunny </Text>
-        </View>
-        <View style={styles.day}>
-          <Text style={styles.tempText}>27°C </Text>
-          <Text style={styles.weatherText}>Sunny </Text>
-        </View>
-        <View style={styles.day}>
-          <Text style={styles.tempText}>27°C </Text>
-          <Text style={styles.weatherText}>Sunny </Text>
-        </View>
-        <View style={styles.day}>
-          <Text style={styles.tempText}>27°C </Text>
-          <Text style={styles.weatherText}>Sunny </Text>
-        </View>
+        {days.length === 0 ? (
+          <View style={styles.day}>
+            <ActivityIndicator color="black" size="large" />
+          </View>
+        ) : (
+          days.slice(0, 5).map((day, i) => (
+            <View key={i} style={styles.day}>
+              <Text style={styles.date}>{formatDate(days[i].dt_txt)}</Text>
+              <Text style={styles.tempText}>
+                {days[i].main.temp.toFixed(1)}°C
+              </Text>
+              <Text style={styles.max_min_Text}>
+                MAX : {days[i].main.temp_max}°C / MIN : {days[i].main.temp_min}
+                °C
+              </Text>
+              <Text style={styles.humidityText}>
+                💧{days[i].main.humidity}%{" "}
+              </Text>
+              <Text style={styles.weatherText}>{days[i].weather[0].main}</Text>
+              <Text style={styles.descriptionText}>
+                {days[i].weather[0].description}
+              </Text>
+              <View style={styles.icons}>
+                <Fontisto name={icons[days[i].weather[0].main]} size={96} />
+              </View>
+            </View>
+          ))
+        )}
       </ScrollView>
-      <StatusBar style="black" />
     </View>
   );
 }
@@ -106,7 +118,7 @@ const styles = StyleSheet.create({
   },
 
   city: {
-    flex: 1,
+    flex: 0.6,
     color: "black",
     justifyContent: "center", // vertical
     alignItems: "center", // horizontal
@@ -114,50 +126,54 @@ const styles = StyleSheet.create({
   cityText: {
     fontSize: 48,
     fontWeight: "500",
+    marginBottom: 0,
   },
   weather: {
     // flex: 8,
-
     color: "black",
   },
   day: {
     flex: 1,
     width: SCREEN_WIDTH,
   },
+  date: {
+    fontSize: 36,
+    fontWeight: "bold",
+    marginTop: 0,
+    // 좌우간 정중앙
+    textAlign: "center",
+  },
   tempText: {
     marginTop: 50,
     fontSize: 98,
     fontWeight: "bold",
-    marginLeft: 40,
+    textAlign: "center",
   },
   weatherText: {
+    fontSize: 48,
+    fontWeight: "bold",
+    marginTop: 50,
+    textAlign: "center",
+  },
+  humidityText: {
     fontSize: 34,
     fontWeight: "bold",
     marginLeft: 40,
+  },
+  descriptionText: {
+    fontSize: 28,
+    textAlign: "center",
   },
   max_min_Text: {
     fontSize: 24,
     fontWeight: "bold",
     marginLeft: 40,
   },
+  icons: {
+    flex: 1,
+    // 가로 정중앙
+    alignItems: "center",
+    // 세로 정중앙
+    justifyContent: "center",
+  },
 });
-///////////////////////////////////////////////
-//requestPermissionAsync() : 사용자에게 위치 정보를 얻어오는 권한을 요청하는 함수
-//getCurrentPositionAsync() : 현재 위치를 얻어오는 함수
-//geocodeAsync() : 주소를 위도, 경도로 변환해주는 함수
-//reverseGeocodeAsync() : 위도, 경도를 주소로 변환해주는 함수
-///////////////////////////////////////////////
-// const getWeather = async () => {
-
-//   const response1 = await fetch(
-//     `https://api.openweathermap.org/data/2.5/forecast?lat=${lati_long.latitude}&lon=${lati_long.longitude}&appid=${API_KEY}`
-//   );
-//   const json1 = await response1.json();
-//   setDays(
-//     json1.list.filter((weather) => {
-//       if (weather.dt_txt.includes("15:00:00")) return weather;
-//     })
-//   );
-// console.log(days[0].main.temp);const { weatherToday, refetch } = useWeatherToday();
-
-///////////////////////////////////////////////

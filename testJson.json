@@ -1,24 +1,32 @@
-today:  {
-  "base": "stations",
-  "clouds": {"all": 0},
-  "cod": 200,
-  "coord": {
-    "lat": 37.3377,
-    "lon": 127.2677},
-  "dt": 1694050041,
-  "id": 1845275,
+{
+  "clouds": { "all": 13 },
+  "dt": 1694271600,
+  "dt_txt": "2023-09-09 15:00:00",
   "main": {
-    "feels_like": 299.72,
-    "humidity": 50,
+    "feels_like": 13.87,
+    "grnd_level": 1016,
+    "humidity": 87,
     "pressure": 1017,
-    "temp": 299.72,
-    "temp_max": 300.53,
-    "temp_min": 298.2
+    "sea_level": 1017,
+    "temp": 14.13,
+    "temp_kf": -1.23,
+    "temp_max": 15.36,
+    "temp_min": 14.13
   },
-  "name": "Chuja-ri",
-  "sys": {"country": "KR", "id": 5509, "sunrise": 1694034350, "sunset": 1694080381, "type": 1},
-  "timezone": 32400,
+  "pop": 0,
+  "sys": { "pod": "d" },
   "visibility": 10000,
-  "weather": [{"description": "clear sky", "icon": "01d", "id": 800, "main": "Clear"}],
-  "wind": {"deg": 60, "speed": 2.06}
+  "weather": [
+    {
+      "description": "few clouds",
+      "icon": "02d",
+      "id": 801,
+      "main": "Clouds"
+    }
+  ],
+  "wind": {
+    "deg": 231,
+    "gust": 2.02,
+    "speed": 1.56
+  }
 }
